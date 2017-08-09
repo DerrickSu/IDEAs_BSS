@@ -112,7 +112,7 @@ class MU:
 
     # Use a block to update all
     # 要一邊更新alpha 一邊更新index 選擇penalty最小的 後再加入
-    def update( self , YQ , index ):
+    def __update( self , YQ , index ):
         n = self.__n
         x = 0
         for i in YQ[:,index]:
@@ -135,30 +135,32 @@ class MU:
         alpha = 0
         for i in range(0.2,1.2,5):
             idx = (np.array(range(0,YQ.shape[1])))[ act_idx > i*self.__max_s ]
-            
-            time_space = np.linspace(0,block/sample_rate , block)
+
+            # Penalty function = 100*d+CV
+            # Coefficient of variation (CV) = std/mean
+            # Median of discharge rate (pulse per second)
+            # for interspike intervals in jth MU set.
+            time_space = np.linspace(0,block/sample_rate , block)            
             t = time_space[idx]
             interval = t[1::] - t[0:-1]
-
             discharge = 1/np.median(interval)
+
             if(discharge < 6 )or(discharge > 40):
                 d = 1
             else:
                 d = 0
-
             CV = interval.std() / interval.mean()
             penalty = 100*d+CV
+
             if penalty > p:
                 pass
             else:
                 p = penalty
                 alpha = i
         idx = (np.array(range(0,YQ.shape[1])))[ act_idx > i*self.__max_s ]
-        
+        self.__update(YQ,idx)
             
-# Coefficient of variation (CV) = std/mean
-# Median of discharge rate (pulse per second)
-# for interspike intervals in jth MU set.
+
 
 
 
