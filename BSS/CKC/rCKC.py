@@ -130,6 +130,7 @@ class MU:
     # 時間在 D ~ D+Q , Q is sample number in a block.
     def train(self , YQ , cov ):
         global block , sample_rate ,D
+        
         act_idx = self.__f.T @ cov @ YQ
         p = 0
         alpha = 0
@@ -159,7 +160,8 @@ class MU:
                 alpha = i
         idx = (np.array(range(0,YQ.shape[1])))[ act_idx > i*self.__max_s ]
         self.__update(YQ,idx)
-            
+        if act_idx.max() > self.__max_s:
+            self.__max_s = act_idx.max()
 
 
 
