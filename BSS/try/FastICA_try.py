@@ -18,7 +18,7 @@ from sklearn.decomposition import FastICA , PCA, SparsePCA
 np.random.seed(0)
 n_samples = 2000
 time = np.linspace(0,8,n_samples)
-# 分n_sample個區間
+# 分n_sample個區間，包含首尾
 # arange() 分step
 
 
