@@ -1,9 +1,9 @@
 
 
-import sys , os , time
+##import sys , os , time
 import numpy as np
-import matplotlib.pyplot as plt
-import scipy
+##import matplotlib.pyplot as plt
+##import scipy
 
 
 from numpy import linalg
@@ -11,15 +11,25 @@ from numpy import linalg
 pi = np.pi
 
 """
-inverse
-numpy.linalg.inv()
+This method refer to the paper " Real-Time Motor Unit Identification
+From High-Density Surface EMG ".
 
-matrix.transpose()
+The main destination is to find MU signal and find which is fatigue or
+what kind of motion is act.
 
-np.linalg.svd(a)
-a = U S V^T
 
-np.linalg.eig()
+Functions:
+
+Sample_process
+Obser_eig
+init_inv_cov
+update_cov
+
+
+Class:
+
+MU
+
 
 """
 ## input
@@ -39,14 +49,15 @@ np.linalg.eig()
 
 
 block = 250
-sample_rate = 1000
+sample_rate = 1000 # Hz
 
-D = 0
+D = 5000
 Q = 250
 
+cov = [] # The first cov matrix from 0 to D
 
 # Reshape the data
-def Sample_process(data , K = 4):
+def Sample_process(data , K = 10):
     # M observation ,N times data
     # obser is M*N.
     # K is delay.
@@ -76,6 +87,10 @@ def Sample_process(data , K = 4):
 
 
 # Set of MU
+# (1)不記錄過去的activity index，
+# (2)記錄過去activity index，每次更新後皆重新挑選，如此較耗時。
+# 目前選用(1)方案，
+
 class MU:
     def __init__(self):
         # Signal time stamp
@@ -87,9 +102,6 @@ class MU:
 
         # Filter of this MU
         self.__f = 0
-
-        # Threshold
-        self.__th = 0
 
         # Max of activity index
         self.__max_s = 0
@@ -107,23 +119,26 @@ class MU:
         return self.__f
 
     @property
-    def th(self):
-        return self.__th
+    def max_s(self):
+        return self.__max_s
 
     # Use a block to update all
     # 要一邊更新alpha 一邊更新index 選擇penalty最小的 後再加入
     def __update( self , YQ , index ):
+
+        global D
         n = self.__n
         x = 0
-        for i in YQ[:,index]:
-            x += i
-            self.__s.append(i)
+        for s ,i in zip(YQ[:,index],index):
+            x += s
+            # time stamp is D+i
+            self.__s.append(D+i)
             self.__n += 1
-        self.__f = self.__f*n + x
-        self.__f /=self.__n
+        self.__f =  self.__f*n + x
+        self.__f /= self.__n
     
 
-    # 更新
+    # 找尋YQ中MU的訊號
     # YQ is next block of signal.
     # Training threshold (jth MU)
     # Just use 0.2*max activity index to 1*activity index by step of 0.2 .
@@ -134,8 +149,8 @@ class MU:
         act_idx = self.__f.T @ cov @ YQ
         p = 0
         alpha = 0
-        for i in range(0.2,1.2,5):
-            idx = (np.array(range(0,YQ.shape[1])))[ act_idx > i*self.__max_s ]
+        for i in np.arange(0.2,1.2,0.2):
+            idx = np.array(range(0,YQ.shape[1]))[ act_idx > i*self.__max_s ]
 
             # Penalty function = 100*d+CV
             # Coefficient of variation (CV) = std/mean
@@ -158,7 +173,9 @@ class MU:
             else:
                 p = penalty
                 alpha = i
-        idx = (np.array(range(0,YQ.shape[1])))[ act_idx > i*self.__max_s ]
+                
+        idx = np.array(range(0,YQ.shape[1]))[ act_idx > i*self.__max_s ]
+        # update MU information
         self.__update(YQ,idx)
         if act_idx.max() > self.__max_s:
             self.__max_s = act_idx.max()
@@ -166,34 +183,23 @@ class MU:
 
 
 
-# Covariance matrix and diagonalize it
-def Obser_eig(y,k=5):
-    y = np.array(y)
-    y = (y-y.mean()).reshape((len(y),1))
-    Cov = y@y.T/(len(y)-1)
-    s,Q = linalg.eig(Cov)
 
-    #sort
-    idx = s.argsort()[::-1]
-    s = s[idx]
-    Q = Q[:,idx]
-    
-    #S_hat = s[:len(s)-k]
-    return s,Q
-    
 
 # Create covariance matrix 
 # Y is MK * N . It means the data of all sample from n = 0 to n = N.
-def produce_inv_cov(Y):
-    return linalg.inv(Y@Y.T/Y.shape[1])
+def init_inv_cov(Y):
+    global cov
+    cov = linalg.inv(Y@Y.T/Y.shape[1])
 
 
 # update covariance matrix
-def update_cov(orig , YQ):
-    I = np.diag([1]*orig.shape[0])
-    inv = linalg.inv(I + YQ.T @ orig @ YQ)
-
-    return orig - orig @ YQ @ inv @ YQ.T @ orig
+def update_cov( YQ ):
+    # Use global var to change its value sychronously.
+    global cov
+    
+    I = np.diag([1]*cov.shape[0])
+    inv = linalg.inv(I + YQ.T @ cov @ YQ)
+    cov = cov - cov @ YQ @ inv @ YQ.T @ cov
 
 
 
