@@ -33,9 +33,9 @@ from numpy import matrix
 
 rd.seed(time.time())
 
-my_seq = [ sin(pi* i/100) for i in range(1000)  ]
+my_seq = np.array([ sin(pi* i/100) for i in range(1000)  ])
 my_rd = np.array(rd.sample(list(range(-20,80)),50)*20)/50
-my_rdseq = my_rd*my_seq
+#my_rdseq = my_rd*my_seq
 
 my_index = np.array(range(0,1000)) *pi/100
 

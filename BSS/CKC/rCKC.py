@@ -48,16 +48,17 @@ MU
 # 資料應該要紀載時間
 
 
-block = 250
+
 sample_rate = 1000 # Hz
 
-D = 5000
+D = 0
 Q = 250
 
 cov = [] # The first cov matrix from 0 to D
 
 # Reshape the data
 def Sample_process(data , K = 10):
+    # data is M*N
     # M observation ,N times data
     # obser is M*N.
     # K is delay.
@@ -92,7 +93,7 @@ def Sample_process(data , K = 10):
 # 目前選用(1)方案，
 
 class MU:
-    def __init__(self):
+    def __init__(self,f,s):
         # Signal time stamp
         # It's a list of index
         self.__s = []
@@ -101,10 +102,10 @@ class MU:
         self.__n = 0
 
         # Filter of this MU
-        self.__f = 0
+        self.__f = f
 
         # Max of activity index
-        self.__max_s = 0
+        self.__max_s = s
         
     @property
     def s(self):
@@ -129,34 +130,39 @@ class MU:
         global D
         n = self.__n
         x = 0
-        for s ,i in zip(YQ[:,index],index):
+        for s ,i in zip(YQ[:,index].T,index):
             x += s
             # time stamp is D+i
             self.__s.append(D+i)
             self.__n += 1
         self.__f =  self.__f*n + x
         self.__f /= self.__n
-    
+
 
     # 找尋YQ中MU的訊號
     # YQ is next block of signal.
     # Training threshold (jth MU)
     # Just use 0.2*max activity index to 1*activity index by step of 0.2 .
     # 時間在 D ~ D+Q , Q is sample number in a block.
-    def train(self , YQ , cov ):
-        global block , sample_rate ,D
+    def train(self , YQ , cov ,block = 250):
+        """
+        如果在此區間沒抓到MU
+        則會出現warning(因interval.std無法計算
+        得排除此BUG以免程式無法繼續運作
+        """
+        global sample_rate ,D
         
         act_idx = self.__f.T @ cov @ YQ
-        p = 0
+        p = np.inf
         alpha = 0
-        for i in np.arange(0.2,1.2,0.2):
-            idx = np.array(range(0,YQ.shape[1]))[ act_idx > i*self.__max_s ]
+        for a in np.arange(0.2,1.0,0.1): # alpha training
+            idx = np.array(range(0,YQ.shape[1]))[ act_idx >= a*self.__max_s ]
 
             # Penalty function = 100*d+CV
             # Coefficient of variation (CV) = std/mean
             # Median of discharge rate (pulse per second)
             # for interspike intervals in jth MU set.
-            time_space = np.linspace(0,block/sample_rate , block)            
+            time_space = np.linspace(0,block/sample_rate , block , endpoint = False)            
             t = time_space[idx]
             interval = t[1::] - t[0:-1]
             discharge = 1/np.median(interval)
@@ -167,14 +173,14 @@ class MU:
                 d = 0
             CV = interval.std() / interval.mean()
             penalty = 100*d+CV
+            print("alpha:",a , penalty)
 
-            if penalty > p:
-                pass
-            else:
+            if penalty < p:
                 p = penalty
-                alpha = i
-                
-        idx = np.array(range(0,YQ.shape[1]))[ act_idx > i*self.__max_s ]
+                alpha = a
+
+        print("final alpha:",alpha,"\n")
+        idx = np.array(range(0,YQ.shape[1]))[ act_idx > alpha*self.__max_s ]
         # update MU information
         self.__update(YQ,idx)
         if act_idx.max() > self.__max_s:
