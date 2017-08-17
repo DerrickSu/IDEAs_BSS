@@ -11,14 +11,32 @@ Some codes are written for original CKC.
 scipy.io.loadmat 
 
 讀CSV檔
-np.getfromtxt(file , delimter = ",") 
+x = pd.read_csv(r"F:\IDEAs_BSS\BSS\Data\S1-Delsys-15Class\HC_1.csv",header = None)
+
+或(減少使用套件)
+with open(r"F:\IDEAs_BSS\BSS\Data\S1-Delsys-15Class\HC_1.csv","r") as f :
+    x = csv.reader(f)
+    y = []
+    for i,z in enumerate(x):
+            if i >= 10:
+                    break
+            y.append(np.array(z).astype("float"))
+    y = np.array(y)
+    f.close()
+    
 
 """
 import numpy as np
 import random as rd
 
 import rCKC
+import csv
 
+
+
+
+
+"""
 # Simulation data
 # n = 1009
 my_seq = np.array([ np.sin(np.pi* i/100) for i in range(1009)  ])
@@ -31,10 +49,53 @@ Y = rCKC.Sample_process(Y)
 
 M = 2
 # Data end 
+"""
 
 
-cov = Y@Y.T
-cov_inv = np.linalg.inv(cov)
+def main():
+    M=10
+
+    with open(r"F:\IDEAs_BSS\BSS\Data\S1-Delsys-15Class\HC_1.csv","r") as f :
+        x = csv.reader(f)
+        y = []
+        for i,z in enumerate(x):
+                if i >= 1009:
+                        break
+                y.append(np.array(z).astype("float"))
+        y = np.array(y)
+        f.close()
+
+    Y = rCKC.Sample_process(y.T)
+
+    cov = Y@Y.T
+    cov_inv = np.linalg.inv(cov)
+
+    act_idx = np.diag( Y.T@ cov_inv @ Y)
+    max_idx = act_idx.argsort()[::-1][0:M]
+    """
+    # orignal CKC
+
+    sig = s[len(s)*8//10]
+    threshold = sig*norm_one(cov_inv)
+    idx = act_idx < threshold
+    act_idx[idx] = 0
+
+    """
+    listMU = []
+    eval_fun = [ "rCKC.MU( Y[:,max_idx[{0}]] , act_idx[max_idx[{0}]] )".format(i) for i in range(M)]
+    for i in eval_fun:
+        listMU.append( eval(i))
+    
+    fun = ["listMU[{0}].train(Y,cov_inv,1000)".format(i) for i in range(M)] 
+    for i in fun:
+        eval(i)
+
+    for i in range(M):
+        a = listMU[i]
+        print("MU_{0}: {1}".format(i,a.n)  )
+
+
+    # END main
 
 
 
@@ -69,46 +130,15 @@ def norm_one(cov):
     return th
 
 
-act_idx = np.diag( Y.T@ cov_inv @ Y)
-
-max_idx = act_idx.argsort()[::-1][0:M]
 
 
 
-"""
-orignal CKC
+def MU_init(M):
+    global max_idx , Y
+    
 
-sig = s[len(s)*8//10]
-threshold = sig*norm_one(cov_inv)
-idx = act_idx < threshold
-act_idx[idx] = 0
 
-"""
+if __name__ == "__main__":
+    main()
 
-def MU_init():
-    global max_idx
-    eval_fun = [ "rCKC.MU( Y[:,max_idx[{0}]] , act_idx[max_idx[{0}]] )".format(i) for i in range(M)]
-    for i in eval_fun:
-        yield eval(i)
-
-listMU = []
-for i in MU_init():
-    listMU.append(i)
-
-# 蒐集所有filter
-# 測試
-"""
-f = np.array([eval( "listMU[{0}].f".format(i) ) for i in range(10) ])
-
-t = f[0] @ cov_inv @ Y
-
-s = listMU[0].max_s
-"""
-fun = ["listMU[{0}].train(Y,cov_inv,1000)".format(i) for i in range(M)] 
-for i in fun:
-    eval(i)
-
-for i in range(M):
-    a = listMU[i]
-    print("MU{0}: {1}".format(i,a.n)  )
 

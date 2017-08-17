@@ -8,7 +8,10 @@ import numpy as np
 
 from numpy import linalg
 
-pi = np.pi
+# define warning as error to avoid wasting time for calculation
+import warnings
+warnings.filterwarnings("error")
+
 
 """
 This method refer to the paper " Real-Time Motor Unit Identification
@@ -155,7 +158,7 @@ class MU:
         act_idx = self.__f.T @ cov @ YQ
         p = np.inf
         alpha = 0
-        for a in np.arange(0.2,1.0,0.1): # alpha training
+        for a in np.arange(0.2,1.1,0.1): # alpha training
             idx = np.array(range(0,YQ.shape[1]))[ act_idx >= a*self.__max_s ]
 
             # Penalty function = 100*d+CV
@@ -165,21 +168,26 @@ class MU:
             time_space = np.linspace(0,block/sample_rate , block , endpoint = False)            
             t = time_space[idx]
             interval = t[1::] - t[0:-1]
-            discharge = 1/np.median(interval)
+            try:
+                discharge = 1/np.median(interval)
 
-            if(discharge < 6 )or(discharge > 40):
-                d = 1
-            else:
-                d = 0
-            CV = interval.std() / interval.mean()
-            penalty = 100*d+CV
-            print("alpha:",a , penalty)
+                if(discharge < 6 or(discharge > 40)):
+                    d = 1
+                else:
+                    d = 0                
+                CV = interval.std() / interval.mean()
+            except RuntimeWarning:
+                break
+            penalty = 10*d+CV
+            
+#            print("alpha:",a , penalty)
 
             if penalty < p:
                 p = penalty
                 alpha = a
 
-        print("final alpha:",alpha,"\n")
+#        print("final alpha:",alpha,"\n")
+
         idx = np.array(range(0,YQ.shape[1]))[ act_idx > alpha*self.__max_s ]
         # update MU information
         self.__update(YQ,idx)
@@ -208,13 +216,6 @@ def update_cov( YQ ):
     cov = cov - cov @ YQ @ inv @ YQ.T @ cov
 
 
-
-
-if __name__ == "__main__":
-    obser = np.arange(1,51).reshape((5,10))
-    x = Sample_process(obser , K = 5)
-    print("y")
-    
 
 
 
