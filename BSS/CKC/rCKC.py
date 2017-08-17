@@ -213,6 +213,7 @@ def update_cov( YQ ):
 if __name__ == "__main__":
     obser = np.arange(1,51).reshape((5,10))
     x = Sample_process(obser , K = 5)
+    print("y")
     
 
 

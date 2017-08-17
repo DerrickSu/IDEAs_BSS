@@ -7,8 +7,11 @@
 Initialization of rCKC.
 Some codes are written for original CKC.
 
+讀mat檔
+scipy.io.loadmat 
 
-scipy.io.loadmat 可讀mat檔
+讀CSV檔
+np.getfromtxt(file , delimter = ",") 
 
 """
 import numpy as np
@@ -26,7 +29,7 @@ Y = (np.c_[my_seq,my_rd]@mix).T
 
 Y = rCKC.Sample_process(Y)
 
-M = 10
+M = 2
 # Data end 
 
 
