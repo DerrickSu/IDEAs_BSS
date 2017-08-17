@@ -27,7 +27,6 @@ with open(r"F:\IDEAs_BSS\BSS\Data\S1-Delsys-15Class\HC_1.csv","r") as f :
 
 """
 import numpy as np
-import random as rd
 
 import rCKC
 import csv
@@ -39,6 +38,8 @@ import csv
 """
 # Simulation data
 # n = 1009
+import random as rd
+
 my_seq = np.array([ np.sin(np.pi* i/100) for i in range(1009)  ])
 my_rd = np.array(rd.sample(list(range(-20,80)),50)*20+[1,5,2,3,5,8,9,5,1])/50
 
@@ -72,15 +73,7 @@ def main():
 
     act_idx = np.diag( Y.T@ cov_inv @ Y)
     max_idx = act_idx.argsort()[::-1][0:M]
-    """
-    # orignal CKC
 
-    sig = s[len(s)*8//10]
-    threshold = sig*norm_one(cov_inv)
-    idx = act_idx < threshold
-    act_idx[idx] = 0
-
-    """
     listMU = []
     eval_fun = [ "rCKC.MU( Y[:,max_idx[{0}]] , act_idx[max_idx[{0}]] )".format(i) for i in range(M)]
     for i in eval_fun:
@@ -99,43 +92,8 @@ def main():
 
 
 
-# Covariance matrix and diagonalize it
-def Obser_eig(y,k=5):
-    y = np.array(y)
-    #y = (y-y.mean()).reshape((len(y),1))
-    Cov = y@y.T/len(y)
-    s,Q = linalg.eig(Cov)
-
-    #sort
-    idx = s.argsort()[::-1]
-    s = s[idx]
-    Q = Q[:,idx]
-    
-    #S_hat = s[:len(s)-k]
-    return s,Q
-    
 
 
-
-
-# This cov is inverse of covariance matrix.
-def norm_one(cov):
-    th = 0
-    for i in cov.T:
-        a = 0
-        for j in i:
-            a += abs(j)
-        if a > th:
-            th = a
-    return th
-
-
-
-
-
-def MU_init(M):
-    global max_idx , Y
-    
 
 
 if __name__ == "__main__":
