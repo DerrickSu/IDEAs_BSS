@@ -13,7 +13,9 @@ import matplotlib.pyplot as plt
 
 from scipy import signal
 from sklearn.decomposition import FastICA , PCA, SparsePCA
+from matplotlib import interactive
 
+interactive(True)
 
 np.random.seed(0)
 n_samples = 2000
@@ -38,7 +40,7 @@ s3[[i for i in range(2000) if ((i>=70) and (i<280)) or ( (i>=700) and (i<1200) )
 """
 
 S = np.c_[s1,s2,s3,noise]
-S +=0.2 * np.random.normal(size = S.shape)
+#S +=0.2 * np.random.normal(size = S.shape)
 
 # standardize data
 S /= S.std(axis = 0)

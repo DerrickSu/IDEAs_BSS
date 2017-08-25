@@ -30,7 +30,7 @@ import numpy as np
 
 import rCKC
 import csv
-
+import os
 
 
 
@@ -55,8 +55,13 @@ M = 2
 
 def main():
     M=10
-
-    with open(r"F:\IDEAs_BSS\BSS\Data\S1-Delsys-15Class\HC_1.csv","r") as f :
+    
+    os.chdir("..")
+    r = os.getcwd()
+    datapath = os.path.join(r , r"Data\S1-Delsys-15Class\HC_1.csv")
+    
+    
+    with open(datapath ,"r") as f :
         x = csv.reader(f)
         y = []
         for i,z in enumerate(x):
